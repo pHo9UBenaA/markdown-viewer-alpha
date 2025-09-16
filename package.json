@@ -1,0 +1,30 @@
+{
+	"name": "markdown-viewer",
+	"module": "index.ts",
+	"type": "module",
+	"private": true,
+	"scripts": {
+		"dev": "bun --watch src/index.ts",
+		"test": "bun test",
+		"test:e2e": "PLAYWRIGHT_TSCONFIG=tsconfig.playwright.json playwright test",
+		"biome:format": "biome format --write .",
+		"biome:lint": "biome lint --write .",
+		"biome:check": "biome check --write ."
+	},
+	"dependencies": {
+		"rehype-stringify": "^10.0.1",
+		"remark": "^15.0.1",
+		"remark-gfm": "^4.0.1",
+		"remark-parse": "^11.0.0",
+		"remark-rehype": "^11.1.2",
+		"unified": "^11.0.5"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.2.4",
+		"@playwright/test": "^1.55.0",
+		"@types/bun": "latest"
+	},
+	"peerDependencies": {
+		"typescript": "^5"
+	}
+}
