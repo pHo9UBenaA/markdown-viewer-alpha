@@ -2,9 +2,7 @@
  * @file Provides a dedicated registry factory for managing markdown sources.
  */
 
-import { basename } from "path";
-
-import { ensureDirectoryExists, resolveProjectPath } from "./directories";
+import { basename } from "node:path";
 import { success } from "../types/result";
 import {
 	DEFAULT_SOURCE_DIRECTORY,
@@ -15,6 +13,7 @@ import {
 	type SourceKey,
 	type SourceRegistrationResult,
 } from "../types/source";
+import { ensureDirectoryExists, resolveProjectPath } from "./directories";
 
 /** Internal shape for registry state. */
 type RegistryState = {

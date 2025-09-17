@@ -2,14 +2,13 @@
  * @file Centralises markdown document path parsing and safety checks.
  */
 
-import { relative, resolve, sep } from "path";
-
-import { failure, success } from "../types/result";
+import { relative, resolve, sep } from "node:path";
 import type {
 	MarkdownDocumentRequest,
 	MarkdownPathResult,
 } from "../types/markdown";
 import { MarkdownPathError } from "../types/markdown";
+import { failure, success } from "../types/result";
 
 const PATH_SEGMENT_SEPARATOR = "/" as const;
 const PATH_TRAVERSAL_TOKEN = ".." as const;
@@ -29,7 +28,9 @@ const escapesRoot = (root: string, target: string): boolean => {
 export const parseDocumentPath = (
 	documentPath: string,
 ): MarkdownPathResult<MarkdownDocumentRequest> => {
-	const [sourceKey, ...rawSegments] = documentPath.split(PATH_SEGMENT_SEPARATOR);
+	const [sourceKey, ...rawSegments] = documentPath.split(
+		PATH_SEGMENT_SEPARATOR,
+	);
 
 	if (!sourceKey || rawSegments.length === 0) {
 		return failure(MarkdownPathError.InvalidFormat);
@@ -49,7 +50,8 @@ export const parseDocumentPath = (
 	});
 };
 
-const ensureNormalisedRoot = (sourceRoot: string): string => resolve(sourceRoot);
+const ensureNormalisedRoot = (sourceRoot: string): string =>
+	resolve(sourceRoot);
 
 /**
  * Resolves a relative markdown path against a source root while ensuring it stays inside the source.

@@ -20,12 +20,12 @@ export type UseMarkdownDocuments = () => MarkdownDocumentsState;
 /**
  * Gathers reusable markdown document helpers behind a React-inspired hook facade.
  */
-export const createUseMarkdownDocuments = (
-	markdown: MarkdownLibrary,
-): UseMarkdownDocuments => () => ({
-	listFiles: () => markdown.listMarkdownFiles(),
-	resolveDocument: (documentPath: string) =>
-		markdown.resolveMarkdownFile(documentPath),
-	renderDocument: (documentPath: string) =>
-		markdown.renderMarkdownToHtml(documentPath),
-});
+export const createUseMarkdownDocuments =
+	(markdown: MarkdownLibrary): UseMarkdownDocuments =>
+	() => ({
+		listFiles: () => markdown.listMarkdownFiles(),
+		resolveDocument: (documentPath: string) =>
+			markdown.resolveMarkdownFile(documentPath),
+		renderDocument: (documentPath: string) =>
+			markdown.renderMarkdownToHtml(documentPath),
+	});

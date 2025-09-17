@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 const startServer = async () => {
 	const server = spawn("bun", ["src/index.ts"], {
@@ -58,11 +58,11 @@ test.afterAll(() => {
 	}
 });
 
-const visitHome = (page) => async () => {
+const visitHome = (page: Page) => async () => {
 	await page.goto("/");
 };
 
-const navigateToFile = (page) => async (relativePath) => {
+const navigateToFile = (page: Page) => async (relativePath: string) => {
 	await visitHome(page)();
 	await page.getByRole("link", { name: relativePath }).click();
 };

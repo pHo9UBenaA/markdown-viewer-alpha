@@ -3,10 +3,10 @@
  */
 import type { UseMarkdownDocuments } from "../hooks/useMarkdownDocuments";
 import type { UseMarkdownIndex } from "../hooks/useMarkdownIndex";
-import { renderLayout } from "./layout";
-import { renderNavigationTree, type FileHrefBuilder } from "./navigation";
-import { success } from "../types/result";
 import type { MarkdownPathResult } from "../types/markdown";
+import { success } from "../types/result";
+import { renderLayout } from "./layout";
+import { type FileHrefBuilder, renderNavigationTree } from "./navigation";
 
 const DIRECTORY_SEPARATOR = "/" as const;
 const INDEX_PAGE_TITLE = "Markdown files" as const;
@@ -56,7 +56,11 @@ export const createViewer = ({
 					return `<section class="source"><h2>${source.name}</h2><p>No markdown files found.</p></section>`;
 				}
 
-				const treeMarkup = renderNavigationTree(tree, buildViewHref, "file-tree");
+				const treeMarkup = renderNavigationTree(
+					tree,
+					buildViewHref,
+					"file-tree",
+				);
 
 				return `<section class="source"><h2>${source.name}</h2>${treeMarkup}</section>`;
 			})

@@ -1,13 +1,7 @@
-import {
-	afterEach,
-	beforeEach,
-	describe,
-	expect,
-	test,
-} from "vitest";
-import { mkdtemp, rm, writeFile } from "fs/promises";
-import { tmpdir } from "os";
-import { join } from "path";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
 
 import { createTestEnvironment } from "../helpers/environment";
 
@@ -24,7 +18,9 @@ afterEach(() => {
 describe("useMarkdownIndex", () => {
 	test("returns default docs section with navigation tree", async () => {
 		const { sections } = await environment.useMarkdownIndex();
-		const docsSection = sections.find((section) => section.source.key === "docs");
+		const docsSection = sections.find(
+			(section) => section.source.key === "docs",
+		);
 
 		expect(docsSection).toBeDefined();
 		expect(docsSection?.files.length).toBeGreaterThan(0);

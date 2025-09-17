@@ -2,8 +2,8 @@
  * @file Provides utilities for constructing markdown source managers.
  */
 
-import { createSourceRegistry } from "./libs/source-registry";
 import type { SourceRegistry } from "./libs/source-registry";
+import { createSourceRegistry } from "./libs/source-registry";
 import type {
 	MarkdownSource,
 	SourceKey,

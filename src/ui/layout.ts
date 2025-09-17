@@ -3,7 +3,7 @@
  */
 
 import { readFile, stat } from "node:fs/promises";
-import { resolve } from "path";
+import { resolve } from "node:path";
 
 const PROJECT_ROOT = process.cwd();
 const GLOBAL_CSS_RELATIVE_PATH = "src/ui/global.css" as const;

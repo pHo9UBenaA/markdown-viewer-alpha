@@ -38,6 +38,11 @@ export const buildNavigationTree = (
 
 		for (let index = 0; index < segments.length - 1; index += 1) {
 			const segment = segments[index];
+
+			if (!segment) {
+				continue;
+			}
+
 			const nextPath = `${current.path}${DIRECTORY_SEPARATOR}${segment}`;
 			let directory = current.directories.get(segment);
 

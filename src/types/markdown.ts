@@ -37,7 +37,7 @@ export const MarkdownPathError = {
 } as const;
 
 export type MarkdownPathError =
-	typeof MarkdownPathError[keyof typeof MarkdownPathError];
+	(typeof MarkdownPathError)[keyof typeof MarkdownPathError];
 
 /**
  * Result discriminant returned when resolving or loading markdown content.

@@ -23,10 +23,13 @@ export const SourceRegistrationError = {
 } as const;
 
 export type SourceRegistrationError =
-	typeof SourceRegistrationError[keyof typeof SourceRegistrationError];
+	(typeof SourceRegistrationError)[keyof typeof SourceRegistrationError];
 
 /** Result type returned when attempting to register a new source. */
-export type SourceRegistrationResult = Result<MarkdownSource, SourceRegistrationError>;
+export type SourceRegistrationResult = Result<
+	MarkdownSource,
+	SourceRegistrationError
+>;
 
 /** Constant key for the default docs source. */
 export const DEFAULT_SOURCE_KEY = "docs" as const;

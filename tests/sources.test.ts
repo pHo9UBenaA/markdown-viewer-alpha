@@ -1,7 +1,7 @@
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, test } from "vitest";
-import { mkdtemp, rm, writeFile } from "fs/promises";
-import { tmpdir } from "os";
-import { join } from "path";
 
 import { createMarkdownSources } from "../src/sources";
 
@@ -35,7 +35,9 @@ describe("createMarkdownSources", () => {
 	});
 
 	test("keeps instances isolated", async () => {
-		const sharedRoot = await mkdtemp(join(tmpdir(), "markdown-viewer-isolated-"));
+		const sharedRoot = await mkdtemp(
+			join(tmpdir(), "markdown-viewer-isolated-"),
+		);
 		const filePath = join(sharedRoot, "isolated.md");
 		await writeFile(filePath, "# Isolated\n");
 
@@ -44,7 +46,9 @@ describe("createMarkdownSources", () => {
 		await first.registerSource(sharedRoot);
 
 		try {
-			expect(first.listSources().length).toBeGreaterThan(second.listSources().length);
+			expect(first.listSources().length).toBeGreaterThan(
+				second.listSources().length,
+			);
 			expect(
 				second.listSources().some((source) => source.rootPath === sharedRoot),
 			).toBe(false);
