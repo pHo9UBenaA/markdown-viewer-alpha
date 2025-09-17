@@ -1,44 +1,85 @@
-import { describe, expect, test } from "bun:test";
+import {
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	test,
+} from "bun:test";
+import { mkdtemp, rm, writeFile } from "fs/promises";
+import { tmpdir } from "os";
+import { join } from "path";
 
-import { listMarkdownFiles, renderMarkdownToHtml } from "../src/markdown";
+import { createTestEnvironment } from "./helpers/environment";
+
+let environment = createTestEnvironment();
+
+beforeEach(() => {
+	environment = createTestEnvironment();
+});
+
+afterEach(() => {
+	environment.sources.resetSources();
+});
 
 describe("listMarkdownFiles", () => {
-	test("returns all markdown files under docs", async () => {
-		const files = await listMarkdownFiles();
+	test("returns markdown files from the docs source", async () => {
+		const { listFiles } = environment.useMarkdownDocuments();
+		const files = await listFiles();
 
-		expect(files).toEqual([
-			{
-				relativePath: "bun.md",
-				absolutePath: expect.stringMatching(/docs\/bun\.md$/),
-				urlPath: "docs/bun.md",
-			},
-			{
-				relativePath: "postgresql_explain/Explain_EXPLAIN.md",
-				absolutePath: expect.stringMatching(
-					/docs\/postgresql_explain\/Explain_EXPLAIN\.md$/,
+		expect(files.length).toBeGreaterThan(0);
+		expect(files).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					sourceKey: "docs",
+					relativePath: "mixt_docs/01_project_overview.md",
+					urlPath: "docs/mixt_docs/01_project_overview.md",
+				}),
+			]),
+		);
+	});
+
+	test("includes files from a registered source", async () => {
+		const root = await mkdtemp(join(tmpdir(), "markdown-viewer-"));
+		const filePath = join(root, "extra.md");
+		await writeFile(filePath, "# Extra\n");
+
+		const { registerSource } = environment.useMarkdownSources();
+		const registration = await registerSource(root);
+
+		try {
+			expect(registration.ok).toBe(true);
+			if (!registration.ok) {
+				return;
+			}
+			const source = registration.value;
+			const { listFiles } = environment.useMarkdownDocuments();
+			const files = await listFiles();
+			expect(
+				files.some(
+					(file) =>
+						file.sourceKey === source.key &&
+						file.relativePath === "extra.md" &&
+						file.urlPath === `${source.key}/extra.md`,
 				),
-				urlPath: "docs/postgresql_explain/Explain_EXPLAIN.md",
-			},
-			{
-				relativePath: "remark-rehype.md",
-				absolutePath: expect.stringMatching(/docs\/remark-rehype\.md$/),
-				urlPath: "docs/remark-rehype.md",
-			},
-			{
-				relativePath: "remark.md",
-				absolutePath: expect.stringMatching(/docs\/remark\.md$/),
-				urlPath: "docs/remark.md",
-			},
-		]);
+			).toBe(true);
+		} finally {
+			await rm(root, { recursive: true, force: true });
+		}
 	});
 });
 
 describe("renderMarkdownToHtml", () => {
 	test("converts markdown to HTML", async () => {
-		const html = await renderMarkdownToHtml(
-			"docs/postgresql_explain/Explain_EXPLAIN.md",
+		const { renderDocument } = environment.useMarkdownDocuments();
+		const htmlResult = await renderDocument(
+			"docs/mixt_docs/01_project_overview.md",
 		);
 
-		expect(html).toContain("<h2>Page 1</h2>");
+		expect(htmlResult.ok).toBe(true);
+		if (!htmlResult.ok) {
+			return;
+		}
+
+		expect(htmlResult.value).toContain("<h1>プロジェクト概要</h1>");
 	});
 });
