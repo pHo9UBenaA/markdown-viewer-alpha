@@ -2,10 +2,12 @@
  * @file Exposes helpers for rendering base HTML layout shared by viewer pages.
  */
 
+import { readFile, stat } from "node:fs/promises";
 import { resolve } from "path";
 
 const PROJECT_ROOT = process.cwd();
 const GLOBAL_CSS_RELATIVE_PATH = "src/ui/global.css" as const;
+const CSS_ENCODING_UTF8 = "utf-8" as const;
 
 type LayoutOptions = {
 	readonly baseHref?: string;
@@ -16,13 +18,18 @@ type LayoutOptions = {
  */
 export const loadGlobalStyles = async (): Promise<string> => {
 	const cssPath = resolve(PROJECT_ROOT, GLOBAL_CSS_RELATIVE_PATH);
-	const file = Bun.file(cssPath);
 
-	if (!(await file.exists())) {
+	try {
+		const details = await stat(cssPath);
+
+		if (!details.isFile()) {
+			return "";
+		}
+	} catch {
 		return "";
 	}
 
-	return await file.text();
+	return await readFile(cssPath, CSS_ENCODING_UTF8);
 };
 
 /**

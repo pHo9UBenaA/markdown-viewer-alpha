@@ -4,8 +4,10 @@
 	"type": "module",
 	"private": true,
 	"scripts": {
-		"dev": "bun --watch src/index.ts",
-		"test": "bun test",
+		"dev": "tsx watch src/index.ts",
+		"start": "tsx src/index.ts",
+		"test": "vitest run",
+		"test:watch": "vitest",
 		"test:e2e": "PLAYWRIGHT_TSCONFIG=tsconfig.playwright.json playwright test",
 		"biome:format": "biome format --write .",
 		"biome:lint": "biome lint --write .",
@@ -22,7 +24,9 @@
 	"devDependencies": {
 		"@biomejs/biome": "^2.2.4",
 		"@playwright/test": "^1.55.0",
-		"@types/bun": "latest"
+		"@types/node": "^24.3.1",
+		"tsx": "^4.20.5",
+		"vitest": "^3.2.4"
 	},
 	"peerDependencies": {
 		"typescript": "^5"

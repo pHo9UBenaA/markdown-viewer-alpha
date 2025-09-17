@@ -2,7 +2,8 @@
  * @file Supplies markdown discovery, resolution, and rendering utilities built on functional result types.
  */
 
-import { Dirent, readdir } from "fs/promises";
+import type { Dirent } from "node:fs";
+import { readdir, readFile, stat } from "node:fs/promises";
 import { join } from "path";
 import rehypeStringify from "rehype-stringify";
 import remarkGfm from "remark-gfm";
@@ -21,6 +22,16 @@ import { MarkdownPathError } from "./types/markdown";
 import { failure, success } from "./types/result";
 
 const MARKDOWN_EXTENSION = ".md" as const;
+const FILE_ENCODING_UTF8 = "utf-8" as const;
+
+const fileExists = async (path: string): Promise<boolean> => {
+	try {
+		const details = await stat(path);
+		return details.isFile();
+	} catch {
+		return false;
+	}
+};
 
 const isMarkdownFile = (entry: Dirent): boolean =>
 	entry.isFile() && entry.name.toLowerCase().endsWith(MARKDOWN_EXTENSION);
@@ -135,9 +146,9 @@ export const createMarkdownLibrary = ({
 			return resolvedPath;
 		}
 
-		const file = Bun.file(resolvedPath.value);
+		const exists = await fileExists(resolvedPath.value);
 
-		if (!(await file.exists())) {
+		if (!exists) {
 			return failure(MarkdownPathError.MissingFile);
 		}
 
@@ -158,8 +169,10 @@ export const createMarkdownLibrary = ({
 			return resolved;
 		}
 
-		const file = Bun.file(resolved.value.absolutePath);
-		const sourceContent = await file.text();
+		const sourceContent = await readFile(
+			resolved.value.absolutePath,
+			FILE_ENCODING_UTF8,
+		);
 
 		const result = await unified()
 			.use(remarkParse)

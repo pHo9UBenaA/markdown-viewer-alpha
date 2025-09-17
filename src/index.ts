@@ -1,6 +1,15 @@
 /**
- * @file Starts the Bun HTTP server that exposes markdown index and viewing endpoints.
+ * @file Starts the Node.js HTTP server that exposes markdown index and viewing endpoints.
  */
+
+import {
+	createServer,
+	type IncomingMessage,
+	type ServerResponse,
+} from "node:http";
+import { readFile } from "node:fs/promises";
+import { extname } from "node:path";
+import { Readable } from "node:stream";
 
 import {
 	SourceRegistrationError,
@@ -20,6 +29,10 @@ const HTTP_STATUS = {
 
 const CONTENT_TYPE_HTML = "text/html; charset=utf-8" as const;
 const CONTENT_TYPE_BINARY = "application/octet-stream" as const;
+const CONTENT_TYPE_FORM_URLENCODED = "application/x-www-form-urlencoded" as const;
+const METHOD_GET = "GET" as const;
+const METHOD_HEAD = "HEAD" as const;
+const METHOD_POST = "POST" as const;
 const PATH_ROOT = "/" as const;
 const PATH_INDEX = "/index.html" as const;
 const PATH_REGISTER_SOURCE = "/sources" as const;
@@ -28,6 +41,18 @@ const PATH_FILES_PREFIX = "/files/" as const;
 const FORM_FIELD_DIRECTORY = "directory" as const;
 const QUERY_DOCUMENT_PATH = "path" as const;
 const PORT_FALLBACK = 3000;
+const HOST_FALLBACK = "localhost" as const;
+const REQUEST_DUPLEX_HALF = "half" as const;
+
+const MIME_BY_EXTENSION = {
+	".css": "text/css; charset=utf-8",
+	".html": CONTENT_TYPE_HTML,
+	".js": "text/javascript; charset=utf-8",
+	".json": "application/json; charset=utf-8",
+	".md": "text/markdown; charset=utf-8",
+	".png": "image/png",
+	".svg": "image/svg+xml",
+} as const;
 
 const environment = createMarkdownViewerEnvironment();
 environment.sources.resetSources();
@@ -75,6 +100,95 @@ const markdownErrorStatus = (error: MarkdownPathError): number => {
 	return HTTP_STATUS.badRequest;
 };
 
+const detectContentType = (filePath: string): string => {
+	const extension = extname(filePath).toLowerCase();
+	const match =
+		MIME_BY_EXTENSION[
+			extension as keyof typeof MIME_BY_EXTENSION
+		];
+
+	return match ?? CONTENT_TYPE_BINARY;
+};
+
+const isBodylessMethod = (method: string): boolean =>
+	method === METHOD_GET || method === METHOD_HEAD;
+
+const normalisePort = (rawPort: string | undefined): number => {
+	if (!rawPort) {
+		return PORT_FALLBACK;
+	}
+
+	const parsed = Number(rawPort);
+
+	if (!Number.isInteger(parsed) || parsed <= 0) {
+		return PORT_FALLBACK;
+	}
+
+	return parsed;
+};
+
+const buildRequestFromIncomingMessage = (
+	incoming: IncomingMessage,
+): Request => {
+	const method = incoming.method ?? METHOD_GET;
+	const protocol = incoming.socket.encrypted ? "https" : "http";
+	const host = incoming.headers.host ?? HOST_FALLBACK;
+	const rawUrl = incoming.url ?? PATH_ROOT;
+	const requestUrl = new URL(rawUrl, `${protocol}://${host}`);
+	const headers = new Headers();
+
+	for (const [key, value] of Object.entries(incoming.headers)) {
+		if (typeof value === "undefined") {
+			continue;
+		}
+
+		if (Array.isArray(value)) {
+			for (const entry of value) {
+				headers.append(key, entry);
+			}
+			continue;
+		}
+
+		headers.append(key, value);
+	}
+
+	if (isBodylessMethod(method)) {
+		return new Request(requestUrl, {
+			method,
+			headers,
+		});
+	}
+
+	const bodyStream = Readable.toWeb(incoming);
+
+	return new Request(requestUrl, {
+		method,
+		headers,
+		body: bodyStream,
+		duplex: REQUEST_DUPLEX_HALF,
+	});
+};
+
+const sendResponseToClient = async (
+	client: ServerResponse,
+	response: Response,
+): Promise<void> => {
+	const headers: Record<string, string> = {};
+	response.headers.forEach((value, key) => {
+		headers[key] = value;
+	});
+
+	client.writeHead(response.status, headers);
+
+	if (!response.body) {
+		client.end();
+		return;
+	}
+
+	const buffer = Buffer.from(await response.arrayBuffer());
+	client.end(buffer);
+};
+
 const respondWithHtml = (html: string): Response =>
 	new Response(html, {
 		headers: { "Content-Type": CONTENT_TYPE_HTML },
@@ -83,16 +197,37 @@ const respondWithHtml = (html: string): Response =>
 const respondWithFailure = (message: string, status: number): Response =>
 	new Response(message, { status });
 
-const handleRegisterSource = async (request: Request): Promise<Response> => {
-	const formData = await request.formData();
-	const directory = formData.get(FORM_FIELD_DIRECTORY);
+const readDirectoryField = async (
+	request: Request,
+): Promise<string | null> => {
+	const contentType = request.headers.get("content-type") ?? "";
 
-	if (typeof directory !== "string" || directory.trim() === "") {
+	if (!contentType.includes(CONTENT_TYPE_FORM_URLENCODED)) {
+		return null;
+	}
+
+	const body = await request.text();
+	const fields = new URLSearchParams(body);
+	const directory = fields.get(FORM_FIELD_DIRECTORY);
+
+	if (!directory) {
+		return null;
+	}
+
+	const trimmed = directory.trim();
+
+	return trimmed === "" ? null : trimmed;
+};
+
+const handleRegisterSource = async (request: Request): Promise<Response> => {
+	const directory = await readDirectoryField(request);
+
+	if (!directory) {
 		return respondWithFailure("Invalid directory", HTTP_STATUS.badRequest);
 	}
 
 	const { registerSource } = useMarkdownSources();
-	const registration = await registerSource(directory.trim());
+	const registration = await registerSource(directory);
 
 	if (!registration.ok) {
 		return respondWithFailure(
@@ -131,11 +266,12 @@ const handleFileRequest = async (relativePath: string): Promise<Response> => {
 		);
 	}
 
-	const file = Bun.file(resolved.value.absolutePath);
+	const fileBuffer = await readFile(resolved.value.absolutePath);
+	const contentType = detectContentType(resolved.value.absolutePath);
 
-	return new Response(file, {
+	return new Response(fileBuffer, {
 		headers: {
-			"Content-Type": file.type || CONTENT_TYPE_BINARY,
+			"Content-Type": contentType,
 		},
 	});
 };
@@ -153,7 +289,7 @@ const handleRequest = async (request: Request): Promise<Response> => {
 		return await handleIndexRequest();
 	}
 
-	if (pathname === PATH_REGISTER_SOURCE && request.method === "POST") {
+	if (pathname === PATH_REGISTER_SOURCE && request.method === METHOD_POST) {
 		return await handleRegisterSource(request);
 	}
 
@@ -180,18 +316,31 @@ const handleRequest = async (request: Request): Promise<Response> => {
 	return respondWithFailure("Not found", HTTP_STATUS.notFound);
 };
 
-const port = Number(process.env.PORT ?? PORT_FALLBACK);
+const port = normalisePort(process.env.PORT);
 
-const server = Bun.serve({
-	port,
-	async fetch(request) {
-		try {
-			return await handleRequest(request);
-		} catch (error) {
-			console.error("Unexpected error", error);
-			return respondWithFailure("Internal server error", HTTP_STATUS.internalError);
-		}
-	},
+const server = createServer(async (incomingRequest, serverResponse) => {
+	try {
+		const request = buildRequestFromIncomingMessage(incomingRequest);
+		const response = await handleRequest(request);
+		await sendResponseToClient(serverResponse, response);
+	} catch (error) {
+		console.error("Unexpected error", error);
+		const fallback = respondWithFailure(
+			"Internal server error",
+			HTTP_STATUS.internalError,
+		);
+		await sendResponseToClient(serverResponse, fallback);
+	}
 });
 
-console.log(`Markdown viewer running at http://localhost:${server.port}`);
+server.listen(port, () => {
+	const address = server.address();
+	const resolvedPort =
+		typeof address === "object" && address !== null
+			? address.port
+			: port;
+
+	console.log(
+		`Markdown viewer running at http://${HOST_FALLBACK}:${resolvedPort}`,
+	);
+});

@@ -4,7 +4,7 @@ import {
 	describe,
 	expect,
 	test,
-} from "bun:test";
+} from "vitest";
 import { mkdtemp, rm, writeFile } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
