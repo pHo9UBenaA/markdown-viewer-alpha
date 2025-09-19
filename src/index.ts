@@ -45,6 +45,7 @@ const PORT_FALLBACK = 3000;
 const HOST_FALLBACK = "localhost" as const;
 const PROTOCOL_HTTP = "http" as const;
 const PROTOCOL_HTTPS = "https" as const;
+const REQUEST_DUPLEX_HALF = "half" as const;
 
 const MIME_BY_EXTENSION = {
 	".css": "text/css; charset=utf-8",
@@ -167,19 +168,21 @@ const buildRequestFromIncomingMessage = (
 		headers.append(key, value);
 	}
 
+	const baseInit: RequestInit = {
+		method,
+		headers,
+	};
+
 	if (isBodylessMethod(method)) {
-		return new Request(requestUrl, {
-			method,
-			headers,
-		});
+		return new Request(requestUrl, baseInit);
 	}
 
 	const bodyStream = toRequestBodyStream(incoming);
 
 	return new Request(requestUrl, {
-		method,
-		headers,
+		...baseInit,
 		body: bodyStream,
+		duplex: REQUEST_DUPLEX_HALF,
 	});
 };
 

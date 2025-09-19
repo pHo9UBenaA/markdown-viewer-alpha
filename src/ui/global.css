@@ -41,7 +41,7 @@
 }
 
 html {
-	font-size: 16px;
+	font-size: 10px;
 	color-scheme: light dark;
 	-webkit-text-size-adjust: 100%;
 }
@@ -62,7 +62,7 @@ button {
 
 main {
 	width: 100%;
-	max-width: 1050px;
+	max-width: 100%;
 	padding: clamp(1rem, 4vw, 3rem);
 	margin-inline: auto;
 
@@ -161,6 +161,9 @@ svg {
 }
 img {
 	border-radius: 8px;
+}
+.mermaid-diagram svg {
+	max-height: none;
 }
 
 table {
