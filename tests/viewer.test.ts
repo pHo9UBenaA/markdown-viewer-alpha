@@ -27,6 +27,12 @@ describe("buildIndexPage", () => {
 		);
 		expect(html).toContain('<form method="post" action="/sources"');
 		expect(html).toContain('name="directory"');
+		expect(html).toContain(
+			'<link rel="stylesheet" href="/assets/global.css" />',
+		);
+		expect(html).toContain(
+			'<script type="module" src="/scripts/mermaid.client.js" defer></script>',
+		);
 	});
 
 	test("includes newly registered sources", async () => {
@@ -69,5 +75,11 @@ describe("buildMarkdownPage", () => {
 		}
 
 		expect(pageResult.value).toContain("<h1>プロジェクト概要</h1>");
+		expect(pageResult.value).toContain(
+			'<link rel="stylesheet" href="/assets/global.css" />',
+		);
+		expect(pageResult.value).toContain(
+			'<script type="module" src="/scripts/mermaid.client.js" defer></script>',
+		);
 	});
 });
